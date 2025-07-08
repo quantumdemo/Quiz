@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}Take Quiz{% endblock %}
+{% block content %}
+<h2>{{ quiz.title }}</h2>
+<form method="POST">
+  <input type="hidden" name="start_time" value="{{ start_time }}" />
+  {% for question in quiz.questions %}
+  <div class="mb-3">
+    <p><strong>{{ loop.index }}. {{ question.content }}</strong></p>
+    {% for key, option in question.options.items() %}
+    <div class="form-check">
+      <input class="form-check-input" type="radio" name="{{ question.id }}" value="{{ key }}" id="q{{ question.id }}{{ key }}" required />
+      <label class="form-check-label" for="q{{ question.id }}{{ key }}">{{ key }}. {{ option }}</label>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+  <button type="submit" class="btn btn-success">Submit Quiz</button>
+</form>
+{% endblock %}
