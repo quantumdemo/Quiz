@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% from "_form_macros.html" import render_field %}
+
+{% block title %}Upload New PDF - Admin{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Upload New PDF</h2>
+    <form method="POST" enctype="multipart/form-data" novalidate>
+        {{ form.hidden_tag() }}
+
+        {{ render_field(form.title, class="form-control") }}
+        {{ render_field(form.description, class="form-control", rows=5) }}
+        {{ render_field(form.category, class="form-control") }}
+        {{ render_field(form.tags, class.="form-control", placeholder="e.g., python, flask, webdev") }}
+
+        <div class="mb-3">
+            <label class="form-label">{{ form.pdf_file.label }}</label>
+            {{ form.pdf_file(class="form-control") }}
+            {% if form.pdf_file.errors %}
+                {% for error in form.pdf_file.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">{{ form.cover_image.label }}</label>
+            {{ form.cover_image(class="form-control") }}
+            {% if form.cover_image.errors %}
+                {% for error in form.cover_image.errors %}
+                    <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <div class.="form-check mb-3">
+            {{ form.is_paid(class="form-check-input") }}
+            {{ form.is_paid.label(class="form-check-label") }}
+        </div>
+
+        <div id="price-field" class="mb-3 {% if not form.is_paid.data %}d-none{% endif %}">
+            {{ render_field(form.price, class="form-control", placeholder="0.00") }}
+        </div>
+
+        {{ form.submit(class="btn btn-primary") }}
+    </form>
+</div>
+
+<script>
+    // Show/hide price field based on is_paid checkbox
+    document.getElementById('is_paid').addEventListener('change', function() {
+        var priceField = document.getElementById('price-field');
+        if (this.checked) {
+            priceField.classList.remove('d-none');
+        } else {
+            priceField.classList.add('d-none');
+        }
+    });
+    // Initial check in case of form repopulation with errors
+    if (document.getElementById('is_paid').checked) {
+        document.getElementById('price-field').classList.remove('d-none');
+    }
+</script>
+{% endblock %}

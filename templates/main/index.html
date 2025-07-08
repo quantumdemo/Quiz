@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome to PDFQuill Marketplace{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    {# Hero Section #}
+    <div class="p-5 mb-4 bg-light rounded-3 shadow-sm">
+        <div class="container-fluid py-5">
+            <h1 class="display-5 fw-bold">Welcome to PDFQuill!</h1>
+            <p class="col-md-8 fs-4">Your one-stop marketplace for quality PDFs and engaging quizzes. Browse our collection, test your knowledge, and enhance your learning.</p>
+            <a href="{{ url_for('pdf.marketplace') }}" class="btn btn-primary btn-lg me-2" type="button">Browse PDFs</a>
+            <a href="{{ url_for('quiz.all_quizzes') }}" class="btn btn-success btn-lg" type="button">Explore Quizzes</a>
+        </div>
+    </div>
+
+    {# Featured PDFs Section #}
+    <div class="row align-items-md-stretch mb-4">
+        <div class="col-md-12">
+            <h2 class="pb-2 border-bottom">Featured PDFs</h2>
+            {# Placeholder: Loop through featured_pdfs passed from the route #}
+            {% if featured_pdfs and featured_pdfs|length > 0 %}
+                <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+                    {% for pdf in featured_pdfs %}
+                        <div class="col">
+                            <div class="card h-100 shadow-sm">
+                                {% if pdf.cover_image_filename %}
+                                    <img src="{{ url_for('static', filename=current_app.config['UPLOAD_FOLDER'] + '/' + pdf.cover_image_filename) if current_app.config['UPLOAD_FOLDER'].startswith('app/static') else url_for('main.serve_upload', filename=pdf.cover_image_filename) }}" class="card-img-top" alt="{{ pdf.title }} cover" style="height: 180px; object-fit: cover;">
+                                {% else %}
+                                    <img src="{{ url_for('static', filename='images/default_pdf_cover.png') }}" class="card-img-top" alt="Default PDF cover" style="height: 180px; object-fit: cover;">
+                                {% endif %}
+                                <div class="card-body">
+                                    <h5 class="card-title"><a href="{{ url_for('pdf.pdf_detail', pdf_id=pdf.id) }}" class="text-decoration-none">{{ pdf.title }}</a></h5>
+                                    <p class="card-text small text-muted">{{ pdf.description[:80] }}{% if pdf.description|length > 80 %}...{% endif %}</p>
+                                    <p class="card-text"><strong>{% if pdf.is_paid %}${{ "%.2f"|format(pdf.price) }}{% else %}Free{% endif %}</strong></p>
+                                </div>
+                                <div class="card-footer bg-transparent border-top-0">
+                                     <a href="{{ url_for('pdf.pdf_detail', pdf_id=pdf.id) }}" class="btn btn-sm btn-outline-primary">View Details</a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted">No featured PDFs available at the moment. Check out the <a href="{{ url_for('pdf.marketplace') }}">full marketplace</a>!</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {# Popular Quizzes Section #}
+    <div class="row align-items-md-stretch mb-4">
+        <div class="col-md-12">
+            <h2 class="pb-2 border-bottom">Popular Quizzes</h2>
+            {# Placeholder: Loop through popular_quizzes passed from the route #}
+            {% if popular_quizzes and popular_quizzes|length > 0 %}
+                 <div class="list-group">
+                    {% for quiz in popular_quizzes %}
+                        <a href="{{ url_for('quiz.take_quiz', quiz_id=quiz.id) }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">{{ quiz.title }}</h5>
+                                <small class="text-muted">{{ quiz.questions.count() }} questions</small>
+                            </div>
+                            <p class="mb-1 small">{{ quiz.description[:100] if quiz.description else 'Test your knowledge!' }}{% if quiz.description and quiz.description|length > 100 %}...{% endif %}</p>
+                            {% if quiz.time_limit %}<small class="text-muted">Time limit: {{ quiz.time_limit }} mins</small>{% endif %}
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted">No popular quizzes featured right now. Explore <a href="{{ url_for('quiz.all_quizzes') }}">all quizzes</a>!</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

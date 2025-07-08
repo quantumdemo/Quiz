@@ -1,22 +1,101 @@
-{% extends 'base.html' %}
-{% block title %}PDF Marketplace{% endblock %}
+{% extends "base.html" %}
+{% from "_form_macros.html" import render_field %}
+{% from "_pagination_macros.html" import render_pagination %}
+
+{% block title %}{{ title or "PDF Marketplace" }}{% endblock %}
+
 {% block content %}
-<h2>Available PDFs</h2>
-<form class="mb-3" method="GET">
-  <input type="text" name="q" placeholder="Search PDFs" value="{{ request.args.get('q', '') }}" class="form-control" />
-</form>
-<div class="row">
-  {% for pdf in pdfs %}
-  <div class="col-md-4">
-    <div class="card mb-3">
-      <div class="card-body">
-        <h5 class="card-title">{{ pdf.title }}</h5>
-        <p class="card-text">{{ pdf.description }}</p>
-        <p><strong>{{ 'Paid' if pdf.is_paid else 'Free' }}</strong></p>
-        <a href="{{ url_for('pdf.download', pdf_id=pdf.id) }}" class="btn btn-success">Download</a>
-      </div>
+<div class="container mt-4">
+    <h1 class="mb-4">{{ title or "PDF Marketplace" }}</h1>
+
+    {# Search and Filter Form #}
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Filter & Search</h5>
+            <form method="GET" action="{{ url_for('pdf.marketplace') }}" class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    {{ render_field(form.query, label_visible=false, placeholder="Search title, description, tags...", class="form-control-sm") }}
+                </div>
+                <div class="col-md-4">
+                    {# Assuming categories are passed to the template for a dropdown #}
+                    {% if categories %}
+                    <label for="category" class="form-label visually-hidden">Category</label>
+                    <select name="category" id="category" class="form-select form-select-sm">
+                        <option value="">All Categories</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat }}" {% if form.category.data == cat %}selected{% endif %}>{{ cat }}</option>
+                        {% endfor %}
+                    </select>
+                    {% else %}
+                     {{ render_field(form.category, label_visible=false, placeholder="Category...", class="form-control-sm") }}
+                    {% endif %}
+                </div>
+                {# Example Price Filter - this would need to be added to SearchForm and handled in route #}
+                {# <div class="col-md-2">
+                    <label for="price" class="form-label visually-hidden">Price</label>
+                    <select name="price" id="price" class="form-select form-select-sm">
+                        <option value="">All Prices</option>
+                        <option value="free" {% if request.args.get('price') == 'free' %}selected{% endif %}>Free</option>
+                        <option value="paid" {% if request.args.get('price') == 'paid' %}selected{% endif %}>Paid</option>
+                    </select>
+                </div> #}
+                <div class="col-md-auto">
+                    {{ form.submit(class="btn btn-primary btn-sm w-100") }}
+                </div>
+                 <div class="col-md-auto">
+                    <a href="{{ url_for('pdf.marketplace') }}" class="btn btn-outline-secondary btn-sm w-100">Clear</a>
+                </div>
+            </form>
+        </div>
     </div>
-  </div>
-  {% endfor %}
+
+    {# PDF Listing #}
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% if pdfs.items %}
+            {% for pdf in pdfs.items %}
+            <div class="col">
+                <div class="card h-100 shadow-sm">
+                    {% if pdf.cover_image_filename %}
+                        {# This requires a route to serve uploaded files, e.g., /uploads/<filename> #}
+                        {# Or UPLOAD_FOLDER to be part of static files #}
+                        <img src="{{ url_for('static', filename=current_app.config['UPLOAD_FOLDER'] + '/' + pdf.cover_image_filename) if current_app.config['UPLOAD_FOLDER'].startswith('app/static') else url_for('main.serve_upload', filename=pdf.cover_image_filename) }}" class="card-img-top" alt="{{ pdf.title }} cover" style="height: 200px; object-fit: cover;">
+                    {% else %}
+                        <img src="{{ url_for('static', filename='images/default_pdf_cover.png') }}" class="card-img-top" alt="Default PDF cover" style="height: 200px; object-fit: cover;">
+                    {% endif %}
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title"><a href="{{ url_for('pdf.pdf_detail', pdf_id=pdf.id) }}" class="text-decoration-none">{{ pdf.title }}</a></h5>
+                        <p class="card-text small text-muted flex-grow-1">{{ pdf.description[:100] }}{% if pdf.description|length > 100 %}...{% endif %}</p>
+                        <p class="card-text"><small class="text-muted">Category: {{ pdf.category or 'N/A' }}</small></p>
+                        <p class="card-text">
+                            <strong>
+                                {% if pdf.is_paid %}
+                                    ${{ "%.2f"|format(pdf.price) }}
+                                {% else %}
+                                    Free
+                                {% endif %}
+                            </strong>
+                        </p>
+                         {# Add average rating here later #}
+                    </div>
+                    <div class="card-footer bg-transparent border-top-0">
+                         <a href="{{ url_for('pdf.pdf_detail', pdf_id=pdf.id) }}" class="btn btn-sm btn-outline-primary">View Details</a>
+                        {# Download button might be conditional based on purchase status, handled on detail or download page #}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <p class="text-center text-muted">No PDFs found matching your criteria.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    {# Pagination #}
+    {% if pdfs.pages > 1 %}
+        <div class="mt-4">
+            {{ render_pagination(pdfs, 'pdf.marketplace', query=form.query.data, category=form.category.data) }}
+        </div>
+    {% endif %}
 </div>
 {% endblock %}

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">{{ title }}</h1>
+
+    <div class="row">
+        {# Profile Information Column #}
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">My Profile</h4>
+                </div>
+                <div class="card-body">
+                    <p><strong>Email:</strong> {{ user.email }}</p>
+                    <p><strong>Role:</strong> {{ user.role.value|replace('_', ' ')|title }}</p>
+                    <p><strong>Email Verified:</strong>
+                        <span class="badge {% if user.email_verified %}bg-success-light text-success-emphasis{% else %}bg-warning-light text-warning-emphasis{% endif %}">
+                            {% if user.email_verified %}Yes{% else %}No{% endif %}
+                        </span>
+                    </p>
+                    {% if not user.email_verified %}
+                        <a href="{{ url_for('auth.resend_verification_request') }}" class="btn btn-sm btn-outline-info">Resend Verification Email</a>
+                    {% endif %}
+                    {# Add link to edit profile details later if needed #}
+                </div>
+            </div>
+        </div>
+
+        {# Main Dashboard Content Column #}
+        <div class="col-md-8">
+            {# Purchased/Accessed PDFs #}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4 class="mb-0">My PDFs</h4>
+                </div>
+                <div class="card-body">
+                    {% if purchases and purchases|length > 0 %}
+                        <ul class="list-group list-group-flush">
+                            {% for purchase_info in purchases %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <a href="{{ url_for('pdf.pdf_detail', pdf_id=purchase_info.pdf_id) }}" class="fw-bold text-decoration-none">{{ purchase_info.pdf_title }}</a>
+                                    <br>
+                                    <small class="text-muted">
+                                        Accessed on: {{ purchase_info.timestamp.strftime('%Y-%m-%d %H:%M') }}
+                                        {% if purchase_info.amount_paid and purchase_info.amount_paid > 0 %}
+                                            (Paid: ${{ "%.2f"|format(purchase_info.amount_paid) }})
+                                        {% else %}
+                                            (Free Access)
+                                        {% endif %}
+                                    </small>
+                                </div>
+                                <a href="{{ url_for('pdf.download', pdf_id=purchase_info.pdf_id) }}" class="btn btn-sm btn-outline-success">Download</a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">You have not purchased or accessed any PDFs yet. <a href="{{ url_for('pdf.marketplace') }}">Browse the marketplace!</a></p>
+                    {% endif %}
+                </div>
+            </div>
+
+            {# Quiz Attempt History #}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4 class="mb-0">My Quiz History</h4>
+                </div>
+                <div class="card-body">
+                    {% if quiz_attempts and quiz_attempts|length > 0 %}
+                        <ul class="list-group list-group-flush">
+                            {% for attempt_info in quiz_attempts %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="fw-bold">{{ attempt_info.quiz_title }}</span>
+                                    <br>
+                                    <small class="text-muted">Attempted: {{ attempt_info.attempted_on.strftime('%Y-%m-%d %H:%M') }} | Score: {{ "%.2f"|format(attempt_info.score) }}%</small>
+                                </div>
+                                <a href="{{ url_for('quiz.quiz_attempt_detail', attempt_id=attempt_info.attempt_id) }}" class="btn btn-sm btn-outline-info">View Details</a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">You have not attempted any quizzes yet. <a href="{{ url_for('quiz.all_quizzes') }}">Find a quiz!</a></p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

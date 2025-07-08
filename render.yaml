@@ -1,17 +1,101 @@
+# render.yaml
+# Defines services for deployment on Render.com
+# Full specification: https://render.com/docs/yaml-spec
+
 services:
+  # PostgreSQL Database Service
+  # This service will create a PostgreSQL database for your application.
+  - type: pserv # 'pserv' denotes a private service, suitable for databases.
+    name: pdfquill-db # A unique name for your database service.
+    plan: free # Choose a plan (e.g., free, standard-0). Free plan has limitations.
+    # region: oregon # Optional: Specify a region, e.g., oregon, frankfurt, singapore.
+    databaseName: pdfquill_app_db # The name of the database that will be created.
+    user: pdfquill_app_user   # The username for connecting to the database.
+    # Render automatically generates a strong password and provides it via an environment variable.
+    postgresMajorVersion: 15 # Specify your desired PostgreSQL major version.
+
+  # Flask Web Service (using Docker)
+  # This service runs your Flask application using the Dockerfile.
   - type: web
-    name: flask-pdf-marketplace
-    env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn run:app
+    name: pdfquill-app # A unique name for your web application service.
+    plan: free # Choose a plan for your web service. Free plan sleeps after inactivity.
+    # region: oregon # Optional: Match the region of your database for lower latency.
+    env: docker # Specifies that the service will be built and run using Docker.
+    # dockerfilePath: ./Dockerfile # Path to your Dockerfile, defaults to ./Dockerfile if not set.
+    # dockerContext: .           # Build context for Docker, defaults to repository root.
+
+    healthCheckPath: /health # Endpoint for Render to check your application's health.
+                             # You need to implement this route in your Flask app.
+
     envVars:
-      - key: SECRET_KEY
-        sync: false
+      # Standard Python/Flask settings
+      - key: PYTHONUNBUFFERED
+        value: "1" # Ensures print statements and logs are sent straight to stdout.
+      - key: PYTHONDONTWRITEBYTECODE
+        value: "1" # Prevents Python from writing .pyc files to disc.
+      - key: FLASK_APP
+        value: run.py # Tells Flask where to find the application instance.
+      - key: FLASK_ENV
+        value: production # Sets Flask to production mode (disables debugger, etc.).
+
+      # Database URL - Render automatically provides this from your 'pdfquill-db' service.
       - key: DATABASE_URL
+        fromDatabase:
+          name: pdfquill-db # Must match the name of your database service defined above.
+          property: connectionString # Tells Render to use the connection string of the database.
+
+      # Application Secrets - IMPORTANT:
+      # For sensitive values, set them directly in the Render dashboard environment settings,
+      # not in this file. Use `generateValue: true` for Render to create them, or set manually.
+      - key: SECRET_KEY
+        generateValue: true # Render will generate a cryptographically secure secret key.
+
+      - key: PAYSTACK_SECRET_KEY
+        sync: false # Value will be set in Render dashboard.
+      - key: PAYSTACK_PUBLIC_KEY
+        sync: false # Value will be set in Render dashboard.
+
+      # Mail Settings - Configure these in the Render dashboard.
+      - key: MAIL_SERVER
+        sync: false
+      - key: MAIL_PORT
+        sync: false
+      - key: MAIL_USE_TLS # true or false
         sync: false
       - key: MAIL_USERNAME
         sync: false
       - key: MAIL_PASSWORD
         sync: false
-      - key: PAYSTACK_SECRET_KEY
+      - key: MAIL_DEFAULT_SENDER # Example: '"Your App Name" <noreply@yourdomain.com>'
         sync: false
+      - key: ADMIN_EMAIL # For application notifications
+        sync: false
+
+      # File Uploads Configuration
+      # For persistent file storage (recommended for uploads), use Render Disks.
+      # This example sets UPLOAD_FOLDER to a path within the container's ephemeral filesystem.
+      # If using Render Disks, you would mount the disk to a path like /var/data/uploads
+      # and set UPLOAD_FOLDER to that mount path.
+      - key: UPLOAD_FOLDER
+        value: /app/instance/uploads # Path inside the Docker container (WORKDIR is /app).
+                                     # Ensure this path is consistent with your app's config.py
+                                     # and that the application has write permissions.
+                                     # Config.py will create this if it doesn't exist.
+
+    # Optional: Define a persistent disk for file uploads if needed.
+    # disks:
+    #   - name: uploads-data
+    #     mountPath: /app/instance/uploads # Must match UPLOAD_FOLDER if used for uploads.
+    #     sizeGB: 1 # Smallest available size, adjust as needed.
+
+    # Optional: Custom build command if your Docker build needs more than `docker build`.
+    # buildCommand: "./build.sh"
+
+    # Optional: Custom start command if CMD in Dockerfile is not sufficient or needs override.
+    # startCommand: "gunicorn --bind 0.0.0.0:${PORT} --workers 3 run:app"
+    # Render automatically sets the PORT environment variable. Gunicorn should bind to it.
+    # The Dockerfile's CMD already handles this:
+    # CMD ["gunicorn", "--bind", "0.0.0.0:${PORT:-10000}", ..., "run:app"]
+
+# Auto-deploy is enabled by default for web services linked to a Git repository.
+# New pushes to the specified branch will trigger a new deployment.
