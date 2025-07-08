@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block content %}
+<h2>Admin Dashboard</h2>
+<h4>Users</h4>
+<table class="table table-striped">
+  <thead>
+    <tr><th>Email</th><th>Role</th><th>Active</th><th>Actions</th></tr>
+  </thead>
+  <tbody>
+    {% for user in users %}
+    <tr>
+      <td>{{ user.email }}</td>
+      <td>{{ user.role }}</td>
+      <td>{{ 'Yes' if user.is_active else 'No' }}</td>
+      <td>
+        {% if user.role != 'admin' %}
+        <a href="{{ url_for('admin.ban_user', user_id=user.id) }}" class="btn btn-danger btn-sm">Ban</a>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h4>PDFs</h4>
+<table class="table table-striped">
+  <thead>
+    <tr><th>Title</th><th>Paid</th><th>Uploaded</th><th>Actions</th></tr>
+  </thead>
+  <tbody>
+    {% for pdf in pdfs %}
+    <tr>
+      <td>{{ pdf.title }}</td>
+      <td>{{ 'Yes' if pdf.is_paid else 'No' }}</td>
+      <td>{{ pdf.uploaded_at.strftime('%Y-%m-%d') }}</td>
+      <td>
+        <a href="{{ url_for('admin.delete_pdf', pdf_id=pdf.id) }}" class="btn btn-danger btn-sm">Delete</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

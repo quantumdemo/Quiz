@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: flask-pdf-marketplace
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn run:app
+    envVars:
+      - key: SECRET_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: PAYSTACK_SECRET_KEY
+        sync: false

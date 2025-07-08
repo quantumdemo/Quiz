@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}PDF Marketplace{% endblock %}
+{% block content %}
+<h2>Available PDFs</h2>
+<form class="mb-3" method="GET">
+  <input type="text" name="q" placeholder="Search PDFs" value="{{ request.args.get('q', '') }}" class="form-control" />
+</form>
+<div class="row">
+  {% for pdf in pdfs %}
+  <div class="col-md-4">
+    <div class="card mb-3">
+      <div class="card-body">
+        <h5 class="card-title">{{ pdf.title }}</h5>
+        <p class="card-text">{{ pdf.description }}</p>
+        <p><strong>{{ 'Paid' if pdf.is_paid else 'Free' }}</strong></p>
+        <a href="{{ url_for('pdf.download', pdf_id=pdf.id) }}" class="btn btn-success">Download</a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
