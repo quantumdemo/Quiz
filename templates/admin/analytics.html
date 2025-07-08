@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - Admin{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>{{ title }}</h1>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary">Back to Dashboard</a>
+    </div>
+
+    <div class="row">
+        {# User Analytics #}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">User Statistics</div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Total Registered Users
+                        <span class="badge bg-primary rounded-pill">{{ total_users }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Verified Users
+                        <span class="badge bg-success rounded-pill">{{ verified_users }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Admin Users
+                        <span class="badge bg-info rounded-pill">{{ admin_users }}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        {# PDF Analytics #}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">PDF Statistics</div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Total PDFs
+                        <span class="badge bg-primary rounded-pill">{{ total_pdfs }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Paid PDFs
+                        <span class="badge bg-secondary rounded-pill">{{ paid_pdfs_count }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Free PDFs
+                        <span class="badge bg-secondary rounded-pill">{{ free_pdfs_count }}</span>
+                    </li>
+                     <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Total Reviews
+                        <span class="badge bg-info rounded-pill">{{ total_reviews }}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        {# Sales Analytics #}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">Sales Statistics</div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Total Successful Purchases
+                        <span class="badge bg-primary rounded-pill">{{ total_purchases }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Total Sales Value
+                        <span class="badge bg-success rounded-pill">${{ "%.2f"|format(total_sales_value) }}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        {# Quiz Analytics #}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">Quiz Statistics</div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Total Quizzes
+                        <span class="badge bg-primary rounded-pill">{{ total_quizzes }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Total Questions (across all quizzes)
+                        <span class="badge bg-secondary rounded-pill">{{ total_questions }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Total Quiz Attempts
+                        <span class="badge bg-warning rounded-pill">{{ total_quiz_attempts }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Average Quiz Score
+                        <span class="badge bg-success rounded-pill">{{ "%.2f"|format(average_quiz_score) }}%</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    {# Placeholder for more detailed charts or reports #}
+    <div class="mt-4 p-3 bg-light rounded">
+        <h4 class="text-muted">Advanced Analytics & Reports</h4>
+        <p class="text-muted">More detailed reports and visualizations will be available here in future updates (e.g., sales trends, popular PDFs, quiz performance by user/quiz).</p>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - Quiz Result{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Results for: {{ quiz.title }}</h2>
+    <p>Attempted on: {{ attempt.attempted_on.strftime('%Y-%m-%d %H:%M') }}</p>
+    <p><strong>Your Score: {{ "%.2f"|format(attempt.score) }}%</strong></p>
+    <p>Duration: {{ "{:02d}:{:02d}".format((attempt.duration // 60), (attempt.duration % 60))  }} (MM:SS)</p>
+
+    <hr>
+
+    <h3 class="mt-4">Detailed Breakdown:</h3>
+    {% if quiz.questions.all() %}
+        {% for question in quiz.questions.all() %}
+            <div class="card mb-3 {% if attempt.user_answers_json.get('question_' + question.id|string) and attempt.user_answers_json.get('question_' + question.id|string).upper() == question.correct_answer.upper() %}border-success{% else %}border-danger{% endif %}">
+                <div class="card-header {% if attempt.user_answers_json.get('question_' + question.id|string) and attempt.user_answers_json.get('question_' + question.id|string).upper() == question.correct_answer.upper() %}bg-success-subtle{% else %}bg-danger-subtle{% endif %}">
+                    <strong>Question {{ loop.index }}:</strong> {{ question.content|safe }}
+                </div>
+                <div class="card-body">
+                    <p><strong>Options:</strong></p>
+                    <ul>
+                        {% for key, value in question.options.items() %}
+                            <li>
+                                {{ key }}: {{ value }}
+                                {% if key.upper() == question.correct_answer.upper() %}
+                                    <span class="badge bg-success-light text-success-emphasis rounded-pill">Correct Answer</span>
+                                {% endif %}
+                                {% if attempt.user_answers_json.get('question_' + question.id|string) and attempt.user_answers_json.get('question_' + question.id|string).upper() == key.upper() %}
+                                    <span class="badge bg-primary-light text-primary-emphasis rounded-pill">Your Answer</span>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    <p>
+                        <strong>Your Answer:</strong>
+                        {% set user_ans = attempt.user_answers_json.get('question_' + question.id|string) %}
+                        {% if user_ans %}
+                            {{ user_ans }} - {{ question.options.get(user_ans.upper(), "Invalid option selected") }}
+                            {% if user_ans.upper() == question.correct_answer.upper() %}
+                                <span class="text-success fw-bold">(Correct)</span>
+                            {% else %}
+                                <span class="text-danger fw-bold">(Incorrect)</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="text-muted">Not answered</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>Correct Answer:</strong> {{ question.correct_answer }} - {{ question.options.get(question.correct_answer.upper()) }}</p>
+                    {% if question.explanation %}
+                        <div class="alert alert-info mt-2">
+                            <strong>Explanation:</strong> {{ question.explanation|safe }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>This quiz has no questions.</p>
+    {% endif %}
+
+    <div class="mt-4">
+        <a href="{{ url_for('quiz.all_quizzes') }}" class="btn btn-primary">Back to All Quizzes</a>
+        <a href="{{ url_for('quiz.results_summary') }}" class="btn btn-secondary">View All My Attempts</a>
+    </div>
+</div>
+{% endblock %}

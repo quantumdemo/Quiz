@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{% from "_form_macros.html" import render_field %}
+
+{% block title %}{{ title }} - PDF Details{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        {# PDF Info Column #}
+        <div class="col-md-8">
+            <h1 class="mb-3">{{ pdf.title }}</h1>
+
+            {% if pdf.cover_image_filename %}
+                {# Adjust serving logic as in marketplace.html or use a dedicated serve route #}
+                <img src="{{ url_for('static', filename=current_app.config['UPLOAD_FOLDER'] + '/' + pdf.cover_image_filename) if current_app.config['UPLOAD_FOLDER'].startswith('app/static') else url_for('main.serve_upload', filename=pdf.cover_image_filename) }}"
+                     alt="{{ pdf.title }} Cover" class="img-fluid rounded mb-3" style="max-height: 400px; width: auto;">
+            {% else %}
+                 <img src="{{ url_for('static', filename='images/default_pdf_cover.png') }}"
+                     alt="Default PDF cover" class="img-fluid rounded mb-3" style="max-height: 400px; width: auto;">
+            {% endif %}
+
+            <p class="lead">{{ pdf.description }}</p>
+
+            <p><strong>Category:</strong> {{ pdf.category or 'N/A' }}</p>
+            <p><strong>Tags:</strong> {{ pdf.tags or 'N/A' }}</p>
+            <p><strong>Uploaded:</strong> {{ pdf.uploaded_at.strftime('%Y-%m-%d') }}</p>
+            {% if pdf.uploader %}
+                <p><strong>Uploader:</strong> {{ pdf.uploader.email }}</p> {# Assuming uploader is an admin #}
+            {% endif %}
+
+            <hr>
+
+            {# Actions: Download, Purchase #}
+            <div class="my-3">
+                {% if pdf.is_paid %}
+                    <p><strong>Price:</strong> ${{ "%.2f"|format(pdf.price) }}</p>
+                    {# Check if user has purchased this PDF #}
+                    {% set user_purchase = current_user.purchases.filter_by(pdf_id=pdf.id).first() if current_user.is_authenticated else None %}
+                    {% if user_purchase %}
+                        <a href="{{ url_for('pdf.download', pdf_id=pdf.id) }}" class="btn btn-success"><i class="bi bi-download"></i> Download Purchased PDF</a>
+                    {% else %}
+                        {# Placeholder for Paystack button/form #}
+                        <form method="POST" action="{{ url_for('main.checkout_paystack', pdf_id=pdf.id) }}"> {# Assuming a checkout route #}
+                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                             <button type="submit" class="btn btn-primary"><i class="bi bi-cart-check"></i> Purchase to Download</button>
+                        </form>
+                        <small class="text-muted">You need to purchase this PDF to download it.</small>
+                    {% endif %}
+                {% else %}
+                    <p><strong>Price:</strong> Free</p>
+                    <a href="{{ url_for('pdf.download', pdf_id=pdf.id) }}" class="btn btn-success"><i class="bi bi-download"></i> Download PDF</a>
+                {% endif %}
+            </div>
+
+            <hr>
+
+            {# Reviews Section #}
+            {# Reviews Section #}
+            <h3 class="mt-4">Reviews ({{ reviews|length }})</h3>
+            <div id="reviews-list"> {# ID for AJAX to append new reviews #}
+                {% if reviews %}
+                    {% for review in reviews %}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Rating: {{ review.rating }}/5 Stars</h5>
+                            {% if review.user %} {# Assuming Review model has a user relationship #}
+                                <h6 class="card-subtitle mb-2 text-muted">By: {{ review.user.email }} on {{ review.created_at.strftime('%Y-%m-%d %H:%M') }}</h6>
+                        {% endif %}
+                        <p class="card-text">{{ review.comment }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p id="no-reviews-message">No reviews yet for this PDF.</p> {# ID for "no reviews" message #}
+            {% endif %}
+            </div> {# End of reviews-list #}
+
+            {# Submit Review Form #}
+            <div id="review-form-container" class="mt-4"> {# ID for the form container #}
+                {% if current_user.is_authenticated %}
+                    {% if user_has_reviewed %}
+                        <div class="alert alert-info">You have already reviewed this PDF.</div>
+                    {% else %}
+                        <h3 class="mb-3">Submit Your Review</h3>
+                        <form method="POST" action="{{ url_for('pdf.submit_review', pdf_id=pdf.id) }}" id="reviewSubmitForm" novalidate>
+                            {{ review_form.hidden_tag() }}
+                            {{ render_field(review_form.rating) }}
+                            {{ render_field(review_form.comment, class="form-control", rows=4) }}
+                        {{ review_form.submit(class="btn btn-primary") }}
+                    </form>
+                {% endif %}
+            {% else %}
+                <p class="mt-4"><a href="{{ url_for('auth.login', next=request.url) }}">Log in</a> to submit a review.</p>
+            {% endif %}
+        </div>
+
+        {# Sidebar/Related Info Column (Optional) #}
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Related PDFs</h5>
+                    <p class="card-text text-muted">Feature coming soon...</p>
+                    {# Loop through related PDFs here later #}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+{{ super() }} {# Include scripts from base.html if any #}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const reviewForm = document.getElementById('reviewSubmitForm'); // Add ID to form
+    const reviewsContainer = document.getElementById('reviews-list'); // Add ID to reviews list/container
+    const noReviewsMessage = document.getElementById('no-reviews-message'); // Add ID to "no reviews" p tag
+    const reviewFormContainer = document.getElementById('review-form-container'); // Add ID to review form container
+
+    if (reviewForm) {
+        reviewForm.addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent default form submission
+
+            const formData = new FormData(reviewForm);
+            const actionUrl = reviewForm.getAttribute('action');
+
+            fetch(actionUrl, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    // CSRF token might be needed if Flask-WTF CSRF is strictly enforced on POST even for AJAX
+                    // 'X-CSRFToken': formData.get('csrf_token')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Clear previous form errors
+                document.querySelectorAll('.form-field-error').forEach(el => el.remove());
+
+                if (data.status === 'success') {
+                    // Add the new review to the page
+                    if (reviewsContainer) {
+                        const newReviewHtml = `
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">Rating: ${data.review.rating}/5 Stars</h5>
+                                    <h6 class="card-subtitle mb-2 text-muted">By: ${data.review.user_email} on ${data.review.created_at}</h6>
+                                    <p class="card-text">${data.review.comment ? escapeHtml(data.review.comment) : ''}</p>
+                                </div>
+                            </div>`;
+                        reviewsContainer.insertAdjacentHTML('afterbegin', newReviewHtml); // Add to top
+                        if(noReviewsMessage) noReviewsMessage.style.display = 'none'; // Hide "no reviews" message
+                    }
+
+                    // Hide the form and show a success message or "you've reviewed" message
+                    if (reviewFormContainer) {
+                        reviewFormContainer.innerHTML = '<div class="alert alert-info mt-4">You have already reviewed this PDF.</div>';
+                    }
+
+                    // Display success flash message (optional, as page updates instantly)
+                    displayFlashMessage(data.message, 'success');
+
+                } else if (data.status === 'error' && data.errors) {
+                    // Display form validation errors
+                    for (const fieldName in data.errors) {
+                        const field = reviewForm.querySelector(`[name="${fieldName === 'Rating' ? 'rating' : fieldName.toLowerCase()}"]`); // Adjust field name lookup if needed
+                        const errorDiv = document.createElement('div');
+                        errorDiv.classList.add('invalid-feedback', 'd-block', 'form-field-error');
+                        errorDiv.textContent = data.errors[fieldName].join(', ');
+                        if (field && field.parentNode) {
+                             // Find a good place to insert error, e.g., after the field or its direct container
+                            const fieldContainer = field.closest('.mb-3') || field.parentNode;
+                            fieldContainer.appendChild(errorDiv);
+                            if(field.classList.contains('form-control') || field.classList.contains('form-check-input')) {
+                                field.classList.add('is-invalid');
+                            }
+                        }
+                    }
+                    displayFlashMessage(data.message || 'Please correct the errors below.', 'danger');
+                } else {
+                    displayFlashMessage(data.message || 'An unknown error occurred.', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error submitting review:', error);
+                displayFlashMessage('Could not submit review due to a network error.', 'danger');
+            });
+        });
+    }
+});
+
+function displayFlashMessage(message, category) {
+    const flashContainer = document.querySelector('.container'); // Assuming flash messages appear at top of container
+    if (flashContainer) {
+        // Remove existing flash messages of the same type to avoid clutter (optional)
+        // flashContainer.querySelectorAll(`.alert.alert-${category}`).forEach(el => el.remove());
+
+        const alertHtml = `
+            <div class="alert alert-${category} alert-dismissible fade show" role="alert">
+                ${escapeHtml(message)}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>`;
+        // Prepend to avoid layout shift if other elements expect to be first.
+        // Or find a dedicated flash message placeholder div.
+        const mainContent = document.querySelector('main .container'); // More specific
+        if(mainContent) mainContent.insertAdjacentHTML('afterbegin', alertHtml);
+
+        // Auto-dismiss after some time (optional)
+        setTimeout(() => {
+            const alertElement = mainContent.querySelector(`.alert.alert-${category}`);
+            if (alertElement && bootstrap.Alert.getInstance(alertElement)) {
+                 bootstrap.Alert.getInstance(alertElement).close();
+            } else if (alertElement) { // If instance not found, manually remove
+                alertElement.remove();
+            }
+        }, 7000);
+    }
+}
+
+function escapeHtml(unsafe) {
+    if (typeof unsafe !== 'string') return '';
+    return unsafe
+         .replace(/&/g, "&amp;")
+         .replace(/</g, "&lt;")
+         .replace(/>/g, "&gt;")
+         .replace(/"/g, "&quot;")
+         .replace(/'/g, "&#039;");
+}
+</script>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% from "_form_macros.html" import render_field %}
+
+{% block title %}{{ title }} - Admin{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>{{ title }}</h2>
+    <form method="POST" novalidate>
+        {{ form.hidden_tag() }}
+
+        {{ render_field(form.title, class="form-control", placeholder="Enter a clear and concise title") }}
+        {{ render_field(form.description, class="form-control", rows="3", placeholder="Provide a brief overview of the quiz content or instructions.") }}
+        {{ render_field(form.time_limit, class="form-control", type="number", placeholder="Optional: e.g., 30 for 30 minutes") }}
+
+        {{ form.submit(class="btn btn-primary mt-3") }}
+        <a href="{{ url_for('admin.manage_quizzes') }}" class="btn btn-secondary mt-3">Cancel</a>
+    </form>
+</div>
+{% endblock %}

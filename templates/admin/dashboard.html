@@ -1,44 +1,120 @@
-{% extends 'base.html' %}
-{% block title %}Admin Dashboard{% endblock %}
-{% block content %}
-<h2>Admin Dashboard</h2>
-<h4>Users</h4>
-<table class="table table-striped">
-  <thead>
-    <tr><th>Email</th><th>Role</th><th>Active</th><th>Actions</th></tr>
-  </thead>
-  <tbody>
-    {% for user in users %}
-    <tr>
-      <td>{{ user.email }}</td>
-      <td>{{ user.role }}</td>
-      <td>{{ 'Yes' if user.is_active else 'No' }}</td>
-      <td>
-        {% if user.role != 'admin' %}
-        <a href="{{ url_for('admin.ban_user', user_id=user.id) }}" class="btn btn-danger btn-sm">Ban</a>
-        {% endif %}
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+{% extends "base.html" %}
 
-<h4>PDFs</h4>
-<table class="table table-striped">
-  <thead>
-    <tr><th>Title</th><th>Paid</th><th>Uploaded</th><th>Actions</th></tr>
-  </thead>
-  <tbody>
-    {% for pdf in pdfs %}
-    <tr>
-      <td>{{ pdf.title }}</td>
-      <td>{{ 'Yes' if pdf.is_paid else 'No' }}</td>
-      <td>{{ pdf.uploaded_at.strftime('%Y-%m-%d') }}</td>
-      <td>
-        <a href="{{ url_for('admin.delete_pdf', pdf_id=pdf.id) }}" class="btn btn-danger btn-sm">Delete</a>
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h1 class="mb-4">Admin Dashboard</h1>
+
+    {# Quick Stats/Analytics Summary - Links to full analytics page #}
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-white bg-primary mb-3">
+                <div class="card-header">Total Users</div>
+                <div class="card-body">
+                    <h4 class="card-title">{{ users|length }}</h4>
+                    {# Placeholder for more detailed user stats or link #}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-success mb-3">
+                <div class="card-header">Total PDFs</div>
+                <div class="card-body">
+                    <h4 class="card-title">{{ pdfs|length }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-info mb-3">
+                <div class="card-header">Total Quizzes</div>
+                <div class="card-body">
+                    <h4 class="card-title">{{ quizzes|length }}</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 text-end">
+             <a href="{{ url_for('admin.analytics') }}" class="btn btn-outline-secondary">View Full Analytics</a>
+        </div>
+    </div>
+
+    {# Management Sections Links #}
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <a href="{{ url_for('admin.manage_pdfs') }}" class="btn btn-lg btn-outline-dark w-100 mb-2">Manage PDFs</a>
+        </div>
+        <div class="col-md-3">
+            <a href="{{ url_for('admin.manage_quizzes') }}" class="btn btn-lg btn-outline-dark w-100 mb-2">Manage Quizzes</a>
+        </div>
+        <div class="col-md-3">
+            <a href="{{ url_for('admin.manage_reviews') }}" class="btn btn-lg btn-outline-dark w-100 mb-2">Manage Reviews</a>
+        </div>
+        <div class="col-md-3">
+            {# Placeholder for future user management page #}
+            <button class="btn btn-lg btn-outline-dark w-100 mb-2" disabled>Manage Users (Advanced)</button>
+        </div>
+    </div>
+
+    <hr>
+
+    {# User Listing & Management #}
+    <h3 class="mt-4">Users</h3>
+    <div class="table-responsive">
+        <table class="table table-striped table-hover table-sm">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Verified</th>
+                    <th>Active</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.role.value if user.role else 'N/A' }}</td>
+                    <td>{{ 'Yes' if user.email_verified else 'No' }}</td>
+                    <td>
+                        <span class="badge {% if user.is_active %}bg-success-light text-success-emphasis{% else %}bg-danger-light text-danger-emphasis{% endif %}">
+                            {{ 'Active' if user.is_active else 'Banned' }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if user.id != current_user.id %} {# Admin cannot modify self here #}
+                            {# Ban/Unban User #}
+                            {% if user.is_active %}
+                                <form method="POST" action="{{ url_for('admin.ban_user', user_id=user.id) }}" style="display:inline;" onsubmit="return confirm('Are you sure you want to ban {{ user.email }}?');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-xs btn-warning">Ban</button>
+                                </form>
+                            {% else %}
+                                {# Add an unban route/logic later if needed #}
+                                <button class="btn btn-xs btn-secondary" disabled>Unban</button>
+                            {% endif %}
+
+                            {# Toggle Admin Role #}
+                            <form method="POST" action="{{ url_for('admin.toggle_admin_role', user_id=user.id) }}" style="display:inline;" onsubmit="return confirm('Are you sure you want to change admin status for {{ user.email }}?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                {% if user.is_admin %}
+                                    <button type="submit" class="btn btn-xs btn-outline-danger">Demote Admin</button>
+                                {% else %}
+                                    <button type="submit" class="btn btn-xs btn-outline-success">Promote to Admin</button>
+                                {% endif %}
+                            </form>
+                        {% else %}
+                            <span class="text-muted fst-italic"> (Current User)</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {# Add pagination for users if list becomes long #}
+
+</div>
 {% endblock %}

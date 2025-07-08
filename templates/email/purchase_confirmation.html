@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Purchase Confirmation</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
+        .container { padding: 20px; border: 1px solid #ddd; border-radius: 5px; max-width: 600px; margin: auto; }
+        h1 { color: #0056b3; }
+        .footer { margin-top: 20px; font-size: 0.9em; text-align: center; color: #777; }
+        .button { display: inline-block; padding: 10px 15px; background-color: #28a745; color: #fff; text-decoration: none; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Thank You for Your Purchase!</h1>
+        <p>Hi {{ purchase.user.email if purchase.user else 'Customer' }},</p>
+        <p>We're pleased to confirm your recent purchase:</p>
+
+        <p><strong>PDF Title:</strong> {{ pdf.title }}</p>
+        {% if purchase.amount_paid and purchase.amount_paid > 0 %}
+            <p><strong>Amount Paid:</strong> ${{ "%.2f"|format(purchase.amount_paid) }} ({{ paystack_data.currency }})</p>
+        {% else %}
+            <p><strong>Price:</strong> Free (access recorded)</p>
+        {% endif %}
+        <p><strong>Our Transaction Ref:</strong> {{ purchase.transaction_reference or 'N/A' }}</p>
+        {% if paystack_data %}
+            <p><strong>Paystack Transaction ID:</strong> {{ paystack_data.id }}</p>
+            <p><strong>Payment Channel:</strong> <span style="text-transform: capitalize;">{{ paystack_data.channel }}</span></p>
+            {% if paystack_data.authorization and paystack_data.authorization.card_type %}
+                 <p><strong>Card Type:</strong> {{ paystack_data.authorization.card_type|capitalize }} ending in {{ paystack_data.authorization.last4 }}</p>
+            {% endif %}
+            <p><strong>Date of Purchase (Our System):</strong> {{ purchase.timestamp.strftime('%Y-%m-%d %H:%M:%S') }} UTC</p>
+            {% if paystack_data.paid_at %}
+            <p><strong>Paid At (Paystack):</strong> {{ paystack_data.paid_at|replace("T", " ")|replace(".000Z", "") }} UTC</p>
+            {% endif %}
+        {% else %}
+            <p><strong>Date:</strong> {{ purchase.timestamp.strftime('%Y-%m-%d %H:%M:%S') }} UTC</p>
+        {% endif %}
+
+        <p>You can now access and download your PDF. Visit your dashboard or the PDF's page directly.</p>
+
+        {# Example button - adjust URL as needed #}
+        {# <p><a href="{{ url_for('pdf.pdf_detail', pdf_id=pdf.id, _external=True) }}" class="button">View Your PDF</a></p> #}
+
+        <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
+
+        <p>Thanks,<br>The Team</p>
+    </div>
+    <div class="footer">
+        &copy; {{ "now"|date("Y") }} Your App Name. All rights reserved.
+    </div>
+</body>
+</html>

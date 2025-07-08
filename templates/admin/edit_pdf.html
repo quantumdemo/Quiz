@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% from "_form_macros.html" import render_field %}
+
+{% block title %}{{ title }} - Admin{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>{{ title }}: {{ pdf.title }}</h2>
+
+    <div class="row">
+        <div class="col-md-8">
+            <form method="POST" enctype="multipart/form-data" novalidate> {# enctype might not be needed if not changing files here #}
+                {{ form.hidden_tag() }}
+
+                {{ render_field(form.title, class="form-control") }}
+                {{ render_field(form.description, class="form-control", rows=5) }}
+                {{ render_field(form.category, class="form-control") }}
+                {{ render_field(form.tags, class="form-control", placeholder="e.g., python, flask, webdev") }}
+
+                <div class="form-check mb-3">
+                    {{ form.is_paid(class="form-check-input", id="is_paid_edit") }} {# Ensure unique ID if same page has other is_paid #}
+                    {{ form.is_paid.label(class="form-check-label", for="is_paid_edit") }}
+                </div>
+
+                <div id="price-field-edit" class="mb-3 {% if not form.is_paid.data %}d-none{% endif %}">
+                    {{ render_field(form.price, class="form-control", placeholder="0.00") }}
+                </div>
+
+                {{ form.submit(class="btn btn-primary") }}
+                <a href="{{ url_for('admin.manage_pdfs') }}" class="btn btn-secondary">Cancel</a>
+            </form>
+        </div>
+        <div class="col-md-4">
+            <h4>Current Files</h4>
+            {% if pdf.filename %}
+                <p><strong>PDF:</strong> {{ pdf.filename }}
+                (<a href="#">View</a> / <a href="#">Replace</a>) {# Placeholder links #}
+                </p>
+            {% else %}
+                <p class="text-muted">No PDF file uploaded.</p>
+            {% endif %}
+
+            {% if pdf.cover_image_filename %}
+                <p><strong>Cover Image:</strong> {{ pdf.cover_image_filename }}</p>
+                {# Assuming files are served from UPLOAD_FOLDER which might not be directly web-accessible #}
+                {# Need a route to serve these files, or place them in static if appropriate #}
+                {# For now, just displaying filename. A proper display would be <img src="..."> #}
+                {# Example: <img src="{{ url_for('static', filename='uploads/' + pdf.cover_image_filename) }}" alt="Cover" class="img-fluid"> #}
+                {# This depends on UPLOAD_FOLDER being accessible under static, or a dedicated serve route #}
+                 <p>(<a href="#">View Cover</a> / <a href="#">Replace Cover</a>)</p>
+            {% else %}
+                <p class="text-muted">No cover image uploaded.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    // Show/hide price field based on is_paid checkbox for edit form
+    var isPaidCheckboxEdit = document.getElementById('is_paid_edit');
+    var priceFieldEdit = document.getElementById('price-field-edit');
+
+    function togglePriceFieldEdit() {
+        if (isPaidCheckboxEdit.checked) {
+            priceFieldEdit.classList.remove('d-none');
+        } else {
+            priceFieldEdit.classList.add('d-none');
+        }
+    }
+    isPaidCheckboxEdit.addEventListener('change', togglePriceFieldEdit);
+    // Initial check
+    togglePriceFieldEdit();
+</script>
+{% endblock %}

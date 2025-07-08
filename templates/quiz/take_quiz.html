@@ -1,20 +1,130 @@
-{% extends 'base.html' %}
-{% block title %}Take Quiz{% endblock %}
+{% extends "base.html" %}
+
+{% block title %}Take Quiz: {{ quiz.title }}{% endblock %}
+
 {% block content %}
-<h2>{{ quiz.title }}</h2>
-<form method="POST">
-  <input type="hidden" name="start_time" value="{{ start_time }}" />
-  {% for question in quiz.questions %}
-  <div class="mb-3">
-    <p><strong>{{ loop.index }}. {{ question.content }}</strong></p>
-    {% for key, option in question.options.items() %}
-    <div class="form-check">
-      <input class="form-check-input" type="radio" name="{{ question.id }}" value="{{ key }}" id="q{{ question.id }}{{ key }}" required />
-      <label class="form-check-label" for="q{{ question.id }}{{ key }}">{{ key }}. {{ option }}</label>
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <h2>{{ quiz.title }}</h2>
+        {% if quiz.time_limit and quiz.time_limit > 0 %}
+            <div id="timer" class="fs-4 fw-bold text-danger">Time Left: <span></span></div>
+        {% endif %}
     </div>
-    {% endfor %}
-  </div>
-  {% endfor %}
-  <button type="submit" class="btn btn-success">Submit Quiz</button>
-</form>
+    <p>{{ quiz.description }}</p>
+
+    {# Progress Bar and Timer Row #}
+    <div class="row align-items-center mb-3">
+        <div class="col-md-8">
+            {% if quiz.questions.all()|length > 0 %}
+            <div id="quiz-progress-container">
+                <div class="progress" role="progressbar" aria-label="Quiz progress" aria-valuenow="0" aria-valuemin="0" aria-valuemax="{{ quiz.questions.all()|length }}">
+                    <div class="progress-bar bg-success" style="width: 0%">0/{{ quiz.questions.all()|length }}</div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        <div class="col-md-4 text-md-end">
+            {% if quiz.time_limit and quiz.time_limit > 0 %}
+                <div id="timer" class="fs-5 fw-bold text-danger">Time Left: <span></span></div>
+            {% endif %}
+        </div>
+    </div>
+     {% if quiz.time_limit and quiz.time_limit > 0 %}
+        <p class="text-muted small">You have {{ quiz.time_limit }} minute(s) to complete this quiz. The quiz will submit automatically when time is up.</p>
+    {% endif %}
+    <hr>
+
+    <form method="POST" id="quizForm">
+        {# CSRF token if using Flask-WTF for the form; for now, it's direct POST #}
+        {# {{ form.hidden_tag() }} #}
+        <input type="hidden" name="start_time" value="{{ start_time }}">
+
+        {% for question in quiz.questions.all() %} {# Use .all() if questions is dynamic loader #}
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header">
+                <strong>Question {{ loop.index }}</strong>
+            </div>
+            <div class="card-body">
+                <p class="card-text fs-5">{{ question.content|safe }}</p>
+                <div class="ms-3">
+                    {% for key, option_text in question.options.items() %}
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="radio"
+                               name="question_{{ question.id }}"
+                               value="{{ key }}"
+                               id="q{{ question.id }}_opt{{ key }}" required>
+                        <label class="form-check-label" for="q{{ question.id }}_opt{{ key }}">
+                           {{ key }}. {{ option_text }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+
+        <button type="submit" class="btn btn-success btn-lg mt-3">Submit Quiz</button>
+    </form>
+</div>
+
+{% if quiz.time_limit and quiz.time_limit > 0 %}
+<script>
+    const quizForm = document.getElementById('quizForm');
+    const timerDisplay = document.querySelector('#timer span');
+    let timeLeft = {{ quiz.time_limit * 60 }}; // Time limit in seconds
+
+    function updateTimerDisplay() {
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    function countdown() {
+        if (timeLeft <= 0) {
+            timerDisplay.textContent = "Time's up!";
+            quizForm.submit();
+        } else {
+            updateTimerDisplay();
+            timeLeft--;
+            setTimeout(countdown, 1000);
+        }
+    }
+
+    if (timerDisplay) {
+        updateTimerDisplay(); // Initial display
+        setTimeout(countdown, 1000); // Start countdown
+    }
+
+    // Progress bar logic
+    const progressBar = document.querySelector('#quiz-progress-container .progress-bar');
+    const totalQuestions = {{ quiz.questions.all()|length }};
+    let answeredQuestions = 0;
+
+    if (progressBar && totalQuestions > 0) {
+        const radioInputs = quizForm.querySelectorAll('input[type="radio"]');
+        const answeredQuestionIds = new Set();
+
+        radioInputs.forEach(input => {
+            input.addEventListener('change', function() {
+                const questionName = this.name; // e.g., "question_1"
+                if (!answeredQuestionIds.has(questionName)) {
+                    answeredQuestionIds.add(questionName);
+                    answeredQuestions = answeredQuestionIds.size;
+                    updateProgressBar();
+                }
+            });
+        });
+
+        function updateProgressBar() {
+            const percentage = (answeredQuestions / totalQuestions) * 100;
+            progressBar.style.width = percentage + '%';
+            progressBar.textContent = `${answeredQuestions}/${totalQuestions}`;
+            progressBar.setAttribute('aria-valuenow', answeredQuestions);
+        }
+        // Initial update in case of pre-filled/reloaded form (though less likely here)
+        // updateProgressBar();
+    }
+
+</script>
+{% endif %}
 {% endblock %}

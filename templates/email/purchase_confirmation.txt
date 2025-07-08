@@ -1,0 +1,21 @@
+Hi {{ purchase.user.email if purchase.user else 'Customer' }},
+
+Thank you for your purchase!
+
+PDF Title: {{ pdf.title }}
+{% if purchase.amount_paid and purchase.amount_paid > 0 %}
+Amount Paid: ${{ "%.2f"|format(purchase.amount_paid) }} ({{ paystack_data.currency }})
+{% else %}
+Price: Free (access recorded)
+{% endif %}
+Transaction Reference (Our System): {{ purchase.transaction_reference or 'N/A' }}
+Paystack Transaction ID: {{ paystack_data.id if paystack_data else 'N/A' }}
+Payment Channel: {{ paystack_data.channel if paystack_data else 'N/A' }}
+Date of Purchase (Our System): {{ purchase.timestamp.strftime('%Y-%m-%d %H:%M:%S') }} UTC
+Paid At (Paystack): {{ paystack_data.paid_at|replace("T", " ")|replace("Z", "") if paystack_data and paystack_data.paid_at else 'N/A' }} UTC
+
+You can now download your PDF from your dashboard or the PDF detail page.
+If you have any questions, please contact our support.
+
+Thanks,
+The Team
